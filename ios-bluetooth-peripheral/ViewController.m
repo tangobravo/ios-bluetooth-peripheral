@@ -59,7 +59,6 @@
                               properties:CBCharacteristicPropertyRead
                               value:nil
                               permissions:CBAttributePermissionsReadable];
-//    channelCharacteristic_.value = [NSData dataWithBytes:&channelPSM_ length:2];
     
     service_.characteristics = @[countCharacteristic_, channelCharacteristic_];
     
