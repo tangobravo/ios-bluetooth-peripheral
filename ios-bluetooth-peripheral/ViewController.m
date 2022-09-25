@@ -26,6 +26,7 @@
     CBUUID* channelCharacteristicUUID_;
     CBMutableCharacteristic* channelCharacteristic_;
     CBL2CAPPSM channelPSM_;
+    CBL2CAPChannel* openChannel_;
     
     BOOL countActive_;
     
@@ -167,6 +168,16 @@
 - (void)peripheralManager:(CBPeripheralManager *)peripheral didOpenL2CAPChannel:(nullable CBL2CAPChannel *)channel error:(nullable NSError *)error
 {
     NSLog(@"didOpenL2CAPChannel");
+    if(error != 0) {
+        NSLog(@"Error opening channel: %@", error);
+        return;
+    }
+    
+    openChannel_ = channel;
+    [openChannel_.outputStream open];
+    const char* message = "Hello BLE";
+    NSInteger bytesWritten = [channel.outputStream write:(uint8_t*)message maxLength:strlen(message) + 1];
+    NSLog(@"Written %li bytes", bytesWritten);
 }
 
 @end
