@@ -19,7 +19,7 @@
     CBUUID* serviceUUID_;
     CBMutableService* service_;
     
-    CBUUID* countCharactreristicUUID_;
+    CBUUID* countCharacteristicUUID_;
     CBMutableCharacteristic* countCharacteristic_;
     uint16_t currentCount_;
     
@@ -41,7 +41,7 @@
 
 - (void)startPeripheral {
     serviceUUID_ = [CBUUID UUIDWithString:@"13640001-4EC4-4D67-AEAC-380C85DF4043"];
-    countCharactreristicUUID_ = [CBUUID UUIDWithString:@"13640002-4EC4-4D67-AEAC-380C85DF4043"];
+    countCharacteristicUUID_ = [CBUUID UUIDWithString:@"13640002-4EC4-4D67-AEAC-380C85DF4043"];
     channelCharacteristicUUID_ = [CBUUID UUIDWithString:@"13640003-4EC4-4D67-AEAC-380C85DF4043"];
     
     
@@ -49,7 +49,7 @@
     
     currentCount_ = 0;
     countCharacteristic_ = [[CBMutableCharacteristic alloc]
-                                initWithType:countCharactreristicUUID_
+                                initWithType:countCharacteristicUUID_
                                 properties:CBCharacteristicPropertyNotify
                                 value:nil
                                 permissions:CBAttributePermissionsReadable];
