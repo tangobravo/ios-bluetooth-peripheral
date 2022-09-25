@@ -23,6 +23,10 @@
     CBMutableCharacteristic* countCharacteristic_;
     uint16_t currentCount_;
     
+    CBUUID* channelCharacteristicUUID_;
+    CBMutableCharacteristic* channelCharacteristic_;
+    CBL2CAPPSM channelPSM_;
+    
     BOOL countActive_;
     
     NSTimer* timer_;
@@ -37,9 +41,12 @@
 
 - (void)startPeripheral {
     serviceUUID_ = [CBUUID UUIDWithString:@"13640001-4EC4-4D67-AEAC-380C85DF4043"];
+    countCharactreristicUUID_ = [CBUUID UUIDWithString:@"13640002-4EC4-4D67-AEAC-380C85DF4043"];
+    channelCharacteristicUUID_ = [CBUUID UUIDWithString:@"13640003-4EC4-4D67-AEAC-380C85DF4043"];
+    
+    
     service_ = [[CBMutableService alloc] initWithType:serviceUUID_ primary:YES];
     
-    countCharactreristicUUID_ = [CBUUID UUIDWithString:@"13640002-4EC4-4D67-AEAC-380C85DF4043"];
     currentCount_ = 0;
     countCharacteristic_ = [[CBMutableCharacteristic alloc]
                                 initWithType:countCharactreristicUUID_
@@ -47,7 +54,15 @@
                                 value:nil
                                 permissions:CBAttributePermissionsReadable];
     
-    service_.characteristics = @[countCharacteristic_];
+    channelCharacteristic_ = [[CBMutableCharacteristic alloc]
+                              initWithType:channelCharacteristicUUID_
+                              properties:CBCharacteristicPropertyRead
+                              value:nil
+                              permissions:CBAttributePermissionsReadable];
+//    channelCharacteristic_.value = [NSData dataWithBytes:&channelPSM_ length:2];
+    
+    service_.characteristics = @[countCharacteristic_, channelCharacteristic_];
+    
     timer_ = [NSTimer scheduledTimerWithTimeInterval:0.03 repeats:YES block:^(NSTimer * _Nonnull timer) {
         if(!self->countActive_) return;
         
@@ -63,6 +78,7 @@
         NSLog(@"Powered on state");
         
         [peripheralManager_ addService:service_];
+        [peripheralManager_ publishL2CAPChannelWithEncryption:NO];
     }
 }
 
@@ -107,6 +123,21 @@
 - (void)peripheralManager:(CBPeripheralManager *)peripheral didReceiveReadRequest:(CBATTRequest *)request
 {
     NSLog(@"didReceiveReadRequest");
+    if(![request.characteristic.UUID isEqual:channelCharacteristicUUID_]) {
+        [peripheral respondToRequest:request
+                          withResult:CBATTErrorAttributeNotFound];
+        return;
+    };
+    
+    if (request.offset >= 2) {
+        [peripheral respondToRequest:request
+                          withResult:CBATTErrorInvalidOffset];
+        return;
+    }
+    
+    uint8_t* psmBytes = (uint8_t*)&channelPSM_;
+    request.value = [NSData dataWithBytes:&psmBytes[request.offset] length:(2-request.offset)];
+    [peripheral respondToRequest:request withResult:CBATTErrorSuccess];
 }
 
 - (void)peripheralManager:(CBPeripheralManager *)peripheral didReceiveWriteRequests:(NSArray<CBATTRequest *> *)requests
@@ -121,7 +152,12 @@
 
 - (void)peripheralManager:(CBPeripheralManager *)peripheral didPublishL2CAPChannel:(CBL2CAPPSM)PSM error:(nullable NSError *)error
 {
-    NSLog(@"didPublishL2CAPChannel");
+    NSLog(@"didPublishL2CAPChannel: %hu", PSM);
+    if(error != nil) {
+        NSLog(@"error publishing channel: %@", error);
+        return;
+    }
+    channelPSM_ = PSM;
 }
 
 - (void)peripheralManager:(CBPeripheralManager *)peripheral didUnpublishL2CAPChannel:(CBL2CAPPSM)PSM error:(nullable NSError *)error
