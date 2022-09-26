@@ -28,7 +28,8 @@
     CBL2CAPPSM channelPSM_;
     CBL2CAPChannel* openChannel_;
     
-    BOOL countActive_;
+    BOOL countCharacteristicActive_;
+    BOOL channelActive_;
     
     NSTimer* timer_;
 }
@@ -64,10 +65,16 @@
     service_.characteristics = @[countCharacteristic_, channelCharacteristic_];
     
     timer_ = [NSTimer scheduledTimerWithTimeInterval:0.03 repeats:YES block:^(NSTimer * _Nonnull timer) {
-        if(!self->countActive_) return;
+        if(!(self->countCharacteristicActive_ || self->channelActive_)) return;
         
         self->currentCount_++;
-        [self->peripheralManager_ updateValue:[NSData dataWithBytes:&self->currentCount_ length:2] forCharacteristic:self->countCharacteristic_ onSubscribedCentrals:nil];
+        if(self->countCharacteristicActive_) {
+            [self->peripheralManager_ updateValue:[NSData dataWithBytes:&self->currentCount_ length:2] forCharacteristic:self->countCharacteristic_ onSubscribedCentrals:nil];
+        }
+        
+        if(self->channelActive_) {
+            [self->openChannel_.outputStream write:(uint8_t*)&self->currentCount_ maxLength:2];
+        }
     }];
     
     peripheralManager_ = [[CBPeripheralManager alloc] initWithDelegate:self queue:nil];
@@ -108,7 +115,7 @@
 - (void)peripheralManager:(CBPeripheralManager *)peripheral central:(CBCentral *)central didSubscribeToCharacteristic:(CBCharacteristic *)characteristic
 {
     NSLog(@"central:didSubscribeToCharacteristic");
-    if(characteristic == countCharacteristic_) countActive_ = YES;
+    if(characteristic == countCharacteristic_) countCharacteristicActive_ = YES;
     
     // Lower latency
     [peripheralManager_ setDesiredConnectionLatency:CBPeripheralManagerConnectionLatencyLow forCentral:central];
@@ -117,7 +124,7 @@
 - (void)peripheralManager:(CBPeripheralManager *)peripheral central:(CBCentral *)central didUnsubscribeFromCharacteristic:(CBCharacteristic *)characteristic
 {
     NSLog(@"central:didUnsubscribeFromCharacteristic");
-    if(characteristic == countCharacteristic_) countActive_ = NO;
+    if(characteristic == countCharacteristic_) countCharacteristicActive_ = NO;
 }
 
 - (void)peripheralManager:(CBPeripheralManager *)peripheral didReceiveReadRequest:(CBATTRequest *)request
@@ -175,9 +182,7 @@
     
     openChannel_ = channel;
     [openChannel_.outputStream open];
-    const char* message = "Hello BLE";
-    NSInteger bytesWritten = [channel.outputStream write:(uint8_t*)message maxLength:strlen(message) + 1];
-    NSLog(@"Written %li bytes", bytesWritten);
+    channelActive_ = YES;
 }
 
 @end
