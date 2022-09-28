@@ -117,7 +117,7 @@
     NSLog(@"central:didSubscribeToCharacteristic");
     if(characteristic == countCharacteristic_) countCharacteristicActive_ = YES;
     
-    // Lower latency
+    // Lowest possible latency
     [peripheralManager_ setDesiredConnectionLatency:CBPeripheralManagerConnectionLatencyLow forCentral:central];
 }
 
