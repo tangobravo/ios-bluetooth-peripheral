@@ -64,7 +64,7 @@
     
     service_.characteristics = @[countCharacteristic_, channelCharacteristic_];
     
-    timer_ = [NSTimer scheduledTimerWithTimeInterval:0.03 repeats:YES block:^(NSTimer * _Nonnull timer) {
+    timer_ = [NSTimer scheduledTimerWithTimeInterval:0.028 repeats:YES block:^(NSTimer * _Nonnull timer) {
         if(!(self->countCharacteristicActive_ || self->channelActive_)) return;
         
         self->currentCount_++;
