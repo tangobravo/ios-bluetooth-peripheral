@@ -25,6 +25,7 @@
     
     CBUUID* channelCharacteristicUUID_;
     CBMutableCharacteristic* channelCharacteristic_;
+    BOOL channelPublished_;
     CBL2CAPPSM channelPSM_;
     CBL2CAPChannel* openChannel_;
     
@@ -85,7 +86,6 @@
         NSLog(@"Powered on state");
         
         [peripheralManager_ addService:service_];
-        [peripheralManager_ publishL2CAPChannelWithEncryption:NO];
     }
 }
 
@@ -142,8 +142,19 @@
         return;
     }
     
+    if(!channelPublished_) {
+        [peripheralManager_ publishL2CAPChannelWithEncryption:NO];
+        channelPublished_ = YES;
+        
+        uint16_t zero = 0;
+        uint8_t* zeroBytes = (uint8_t*)&zero;
+        request.value = [NSData dataWithBytes:(zeroBytes + request.offset) length:(2-request.offset)];
+        [peripheral respondToRequest:request withResult:CBATTErrorSuccess];
+        return;
+    }
+    
     uint8_t* psmBytes = (uint8_t*)&channelPSM_;
-    request.value = [NSData dataWithBytes:&psmBytes[request.offset] length:(2-request.offset)];
+    request.value = [NSData dataWithBytes:(psmBytes + request.offset) length:(2-request.offset)];
     [peripheral respondToRequest:request withResult:CBATTErrorSuccess];
 }
 
